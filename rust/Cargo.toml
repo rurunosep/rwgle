@@ -1,0 +1,11 @@
+[package]
+authors = ["Kevin Hernandez-Rives <rurunosep@gmail.com>"]
+edition = "2018"
+name = "rust-webgl"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2.45"
