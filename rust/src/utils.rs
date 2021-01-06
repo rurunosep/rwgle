@@ -1,6 +1,8 @@
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::{WebGlProgram, WebGlShader};
 
+// TODO: only check compile status if linking fails?
+
 pub fn link_program(
   gl: &GL,
   vertex_source: &str,

@@ -1,12 +1,13 @@
-attribute vec4 a_position;
-attribute vec4 a_color;
+attribute vec3 a_position;
+attribute vec3 a_normal;
 
-uniform mat4 u_mvp;
+uniform mat4 u_world_inverse_transpose;
+uniform mat4 u_world_view_projection;
 
-varying vec4 v_color;
+varying vec3 v_normal;
 
 void main() {
-  gl_Position = u_mvp * a_position;
+  v_normal = mat3(u_world_inverse_transpose) * a_normal;
 
-  v_color = a_color;
+  gl_Position = u_world_view_projection * vec4(a_position, 1);
 }
