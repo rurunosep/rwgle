@@ -4,14 +4,19 @@ use wasm_bindgen::JsCast;
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::{HtmlCanvasElement, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 
+// TODO: holy shit, figure out a way to organize and automate all these fucking uniforms and shit
+
 pub struct Simple3D {
   program: WebGlProgram,
   num_indices: i32,
   position_buffer: WebGlBuffer,
   normal_buffer: WebGlBuffer,
   index_buffer: WebGlBuffer,
+  world_location: WebGlUniformLocation,
+  view_location: WebGlUniformLocation,
+  projection_location: WebGlUniformLocation,
   world_inverse_transpose_location: WebGlUniformLocation,
-  world_view_projection_location: WebGlUniformLocation,
+  camera_world_position_location: WebGlUniformLocation,
   reverse_light_direction_location: WebGlUniformLocation,
 }
 
@@ -23,11 +28,14 @@ impl Simple3D {
       include_str!("./shaders/simple_3d.frag"),
     )?;
 
+    let world_location = gl.get_uniform_location(&program, "u_world").unwrap();
+    let view_location = gl.get_uniform_location(&program, "u_view").unwrap();
+    let projection_location = gl.get_uniform_location(&program, "u_projection").unwrap();
     let world_inverse_transpose_location = gl
       .get_uniform_location(&program, "u_world_inverse_transpose")
       .unwrap();
-    let world_view_projection_location = gl
-      .get_uniform_location(&program, "u_world_view_projection")
+    let camera_world_position_location = gl
+      .get_uniform_location(&program, "u_camera_world_position")
       .unwrap();
     let reverse_light_direction_location = gl
       .get_uniform_location(&program, "u_reverse_light_direction")
@@ -65,8 +73,11 @@ impl Simple3D {
       position_buffer,
       normal_buffer,
       index_buffer,
+      world_location,
+      view_location,
+      projection_location,
       world_inverse_transpose_location,
-      world_view_projection_location,
+      camera_world_position_location,
       reverse_light_direction_location,
     })
   }
@@ -95,17 +106,13 @@ impl Simple3D {
       * na::rotation(0.5, &na::vec3(0., 0., 1.));
     let translation = na::translation(&na::vec3(0., 0., -1000.));
     let world = translation * rotation * scale * origin_shift;
-
-    let world_inverse_transpose = na::transpose(&na::inverse(&world));
-    gl.uniform_matrix4fv_with_f32_array(
-      Some(&self.world_inverse_transpose_location),
-      false,
-      &world_inverse_transpose.as_slice(),
-    );
+    gl.uniform_matrix4fv_with_f32_array(Some(&self.world_location), false, &world.as_slice());
 
     let camera_rotation = na::rotation(0., &na::vec3(0., 1., 0.));
-    let camera_translation = na::translation(&na::vec3(0., 0., 0.));
+    let camera_position = na::vec3(0., 0., 0.);
+    let camera_translation = na::translation(&camera_position);
     let view = na::inverse(&(camera_translation * camera_rotation));
+    gl.uniform_matrix4fv_with_f32_array(Some(&self.view_location), false, &view.as_slice());
 
     let canvas = gl
       .canvas()
@@ -115,12 +122,22 @@ impl Simple3D {
     let fov = 60. * (std::f32::consts::PI / 180.);
     let aspect = (canvas.width() / canvas.height()) as f32;
     let projection = na::perspective(aspect, fov, 1., 2000.);
-
-    let world_view_projection = projection * view * world;
     gl.uniform_matrix4fv_with_f32_array(
-      Some(&self.world_view_projection_location),
+      Some(&self.projection_location),
       false,
-      &world_view_projection.as_slice(),
+      &projection.as_slice(),
+    );
+
+    let world_inverse_transpose = na::transpose(&na::inverse(&world));
+    gl.uniform_matrix4fv_with_f32_array(
+      Some(&self.world_inverse_transpose_location),
+      false,
+      &world_inverse_transpose.as_slice(),
+    );
+
+    gl.uniform3fv_with_f32_array(
+      Some(&self.camera_world_position_location),
+      camera_position.as_slice(),
     );
 
     let reverse_light_direction = na::normalize(&na::vec3(0.5, 0.7, 1.0));
