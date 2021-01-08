@@ -26,5 +26,6 @@ features = [
   "WebGlShader",
   "WebGlBuffer",
   "WebGlUniformLocation",
+  "WebGlActiveInfo",
 ]
 version = "0.3.46"
