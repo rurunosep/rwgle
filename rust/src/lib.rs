@@ -7,7 +7,7 @@ mod simple_3d;
 mod utils;
 use simple_3d::*;
 
-// web_sys::console::log_1(&"hello".into());
+// web_sys::console::log_1(&format!("{}").into());
 
 #[wasm_bindgen]
 pub struct RustWebGLEngine {
