@@ -1,29 +1,39 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin')
-
-const dist = path.resolve(__dirname, 'dist')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = {
   mode: 'production',
-  entry: path.resolve(__dirname, 'js', 'index.js'),
+  entry: __dirname + '/js/index.js',
   output: {
     filename: 'bundle.js',
-    path: dist
+    path: __dirname + '/dist'
   },
   devtool: 'source-map',
   devServer: {
-    contentBase: dist
+    contentBase: __dirname + '/dist'
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, 'static', 'index.html')
+      template: __dirname + '/index.html'
     }),
     new WasmPackPlugin({
-      crateDirectory: path.resolve(__dirname, 'rust'),
-      outDir: path.resolve(__dirname, 'wasm')
+      crateDirectory: __dirname + '/rust',
+      outDir: __dirname + '/wasm'
+    }),
+    new CopyWebpackPlugin({
+      patterns: [{ from: __dirname + '/static/' }]
     })
   ],
+  module: {
+    rules: [
+      {
+        test: /\.png$/i,
+        type: 'asset/resource'
+      }
+    ]
+  },
   experiments: {
     syncWebAssembly: true
   }

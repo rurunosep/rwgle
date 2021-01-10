@@ -1,17 +1,16 @@
-import('../wasm/').then((lib) => {
+import('../wasm/').then(({ RustWebGLEngine }) => {
   const canvas = document.getElementById('canvas')
 
-  let engine
   try {
-    engine = new lib.RustWebGLEngine(canvas)
+    let engine = new RustWebGLEngine(canvas)
+
+    const render = () => {
+      engine.render()
+      window.requestAnimationFrame(render)
+    }
+
+    window.requestAnimationFrame(render)
   } catch (e) {
     console.log(e)
   }
-
-  const render = () => {
-    engine.render()
-    window.requestAnimationFrame(render)
-  }
-
-  window.requestAnimationFrame(render)
 })

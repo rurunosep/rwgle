@@ -60,6 +60,7 @@ pub fn get_attributes(gl: &GL, program: &WebGlProgram) -> HashMap<String, Attrib
     let info = gl.get_active_attrib(&program, index).unwrap();
     let (size, type_) = match info.type_() {
       GL::FLOAT_VEC3 => (3, GL::FLOAT),
+      GL::FLOAT_VEC2 => (2, GL::FLOAT),
       x => panic!("No match for attribute type: {}", x),
     };
     map.insert(

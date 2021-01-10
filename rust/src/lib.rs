@@ -9,6 +9,11 @@ use simple_3d::*;
 
 // web_sys::console::log_1(&format!("{}").into());
 
+// Smaller but less efficient memory allocator.
+// Remove if performance becomes a bigger concern.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 #[wasm_bindgen]
 pub struct RustWebGLEngine {
     gl: GL,
@@ -30,7 +35,7 @@ impl RustWebGLEngine {
         Ok(RustWebGLEngine { gl, simple_3d })
     }
 
-    pub fn render(&self) {
+    pub fn render(&mut self) {
         self.gl.enable(GL::CULL_FACE);
         self.gl.enable(GL::DEPTH_TEST);
         self.gl.clear_color(0.0, 0.0, 0.0, 1.0);

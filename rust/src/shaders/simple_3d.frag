@@ -2,17 +2,21 @@
 
 precision mediump float;
 
-varying vec3 v_normal;
-varying vec3 v_world_position;
-
-uniform vec3 u_camera_position;
-uniform struct Light {
+struct Light {
   vec3 position;
   vec3 color;
   float attentuation_coefficient;
   bool directional;
-} u_lights[MAX_LIGHTS];
+};
+
+varying vec3 v_normal;
+varying vec3 v_world_position;
+varying vec2 v_texcoords;
+
+uniform vec3 u_camera_position;
+uniform Light u_lights[MAX_LIGHTS];
 uniform lowp int u_num_lights;
+uniform sampler2D u_texture;
 
 // TODO: Organize all of this
 
@@ -21,7 +25,8 @@ void main() {
   vec3 surface_to_camera_dir = normalize(u_camera_position - v_world_position);
 
   // TODO: Make these uniforms
-  vec3 material_color = vec3(153, 0, 0) / 255.0;
+  // vec3 material_color = vec3(153, 0, 0) / 255.0;
+  vec3 material_specular_color = vec3(1);
   float ambient_coefficient = 0.1;
   float specular_exponent = 70.0;
 
@@ -50,10 +55,10 @@ void main() {
     specular_sum += specular_coefficient * u_lights[i].color;
   }
 
-  vec3 ambient_component = material_color * ambient_coefficient;
-  vec3 diffuse_component = material_color *
+  vec3 ambient_component = texture2D(u_texture, v_texcoords).rgb * ambient_coefficient;
+  vec3 diffuse_component = texture2D(u_texture, v_texcoords).rgb *
     (diffuse_sum / max(diffuse_sum.r, max(diffuse_sum.g, max(diffuse_sum.b, 1.0))));
-  vec3 specular_component = vec3(1) *
+  vec3 specular_component = material_specular_color *
     (specular_sum / max(specular_sum.r, max(specular_sum.g, max(specular_sum.b, 1.0))));
 
   gl_FragColor = vec4((ambient_component + diffuse_component + specular_component), 1);

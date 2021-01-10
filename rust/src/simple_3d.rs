@@ -3,7 +3,10 @@ use nalgebra_glm as na;
 use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 use web_sys::WebGlRenderingContext as GL;
-use web_sys::{HtmlCanvasElement, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
+use web_sys::{
+  HtmlCanvasElement, HtmlImageElement, WebGlBuffer, WebGlProgram, WebGlTexture,
+  WebGlUniformLocation,
+};
 
 pub struct Simple3D {
   program: WebGlProgram,
@@ -11,6 +14,7 @@ pub struct Simple3D {
   num_indices: i32,
   attributes: HashMap<String, Attribute>,
   uniform_locations: HashMap<String, WebGlUniformLocation>,
+  texture: Texture,
 }
 
 impl Simple3D {
@@ -26,7 +30,10 @@ impl Simple3D {
 
     buffer_attribute_data(&gl, &attributes, "a_position", &cube_positions());
     buffer_attribute_data(&gl, &attributes, "a_normal", &cube_normals());
+    buffer_attribute_data(&gl, &attributes, "a_texcoords", &cube_texcoords());
     let (index_buffer, num_indices) = buffer_index_data(&gl, &cube_indices());
+
+    let texture = Texture::new(&gl, "redstone_block.png");
 
     Ok(Simple3D {
       program,
@@ -34,15 +41,19 @@ impl Simple3D {
       num_indices,
       attributes,
       uniform_locations,
+      texture,
     })
   }
 
-  pub fn render(&self, gl: &GL) {
+  pub fn render(&mut self, gl: &GL) {
     gl.use_program(Some(&self.program));
 
     set_attrib_pointers(&gl, &self.attributes);
 
     gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
+
+    self.texture.update(&gl); // check if the image is loaded and fill the texture
+    self.texture.bind(&gl, 0);
 
     self.load_uniforms(gl);
 
@@ -115,13 +126,16 @@ impl Simple3D {
     );
 
     // Lights
-    self.make_light(&gl, 0, &[-500., 0., -900.], &[1., 1., 1.], 0.001);
-    self.make_light(&gl, 1, &[0., 500., -900.], &[1., 1., 1.], 0.001);
-    self.make_light(&gl, 2, &[500., 0., -900.], &[1., 1., 1.], 0.001);
+    self.make_light(&gl, 0, &[-500., 0., -800.], &[1., 1., 1.], 0.001);
+    self.make_light(&gl, 1, &[0., 500., -800.], &[1., 1., 1.], 0.001);
+    self.make_light(&gl, 2, &[500., 0., -800.], &[1., 1., 1.], 0.001);
     gl.uniform1i(
       Some(&self.uniform_locations.get("u_num_lights").unwrap()),
       3,
-    )
+    );
+
+    // Texture
+    gl.uniform1i(Some(&self.uniform_locations.get("u_texture").unwrap()), 0);
   }
 
   fn make_light(&self, gl: &GL, id: i32, pos: &[f32; 3], color: &[f32; 3], attentuation: f32) {
@@ -152,6 +166,65 @@ impl Simple3D {
       ),
       attentuation,
     );
+  }
+}
+
+// TODO: move this out somewhere
+struct Texture {
+  texture: WebGlTexture,
+  image: HtmlImageElement,
+  loaded: bool,
+}
+
+impl Texture {
+  pub fn new(gl: &GL, source: &str) -> Texture {
+    let texture = gl.create_texture().unwrap();
+    gl.active_texture(GL::TEXTURE0);
+    gl.bind_texture(GL::TEXTURE_2D, Some(&texture));
+    gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+      GL::TEXTURE_2D,
+      0,
+      GL::RGBA as i32,
+      1,
+      1,
+      0,
+      GL::RGBA,
+      GL::UNSIGNED_BYTE,
+      Some(&[0, 0, 255, 255]),
+    )
+    .unwrap();
+    let image = HtmlImageElement::new().unwrap();
+    image.set_src(source);
+    let loaded = false;
+
+    Texture {
+      texture,
+      image,
+      loaded,
+    }
+  }
+
+  pub fn update(&mut self, gl: &GL) {
+    if !self.loaded && self.image.complete() {
+      self.loaded = true;
+      gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
+      gl.tex_image_2d_with_u32_and_u32_and_image(
+        GL::TEXTURE_2D,
+        0,
+        GL::RGBA as i32,
+        GL::RGBA,
+        GL::UNSIGNED_BYTE,
+        &self.image,
+      )
+      .unwrap();
+      gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MAG_FILTER, GL::NEAREST as i32);
+      gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MIN_FILTER, GL::NEAREST as i32);
+    }
+  }
+
+  pub fn bind(&self, gl: &GL, unit: u32) {
+    gl.active_texture(GL::TEXTURE0 + unit);
+    gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
   }
 }
 
@@ -235,4 +308,39 @@ fn cube_indices() -> [u16; 36] {
     15, 16, 17, 18, 16, 18,
     19, 20, 21, 22, 20, 22, 23,
   ]
+}
+
+#[rustfmt::skip]
+fn cube_texcoords() -> [f32; 48] {
+ [
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+
+   0., 0.,
+   0., 1.,
+   1., 1.,
+   1., 0.,
+ ]
 }
