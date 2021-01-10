@@ -21,7 +21,7 @@ void main() {
   vec3 surface_to_camera_dir = normalize(u_camera_position - v_world_position);
 
   // TODO: Make these uniforms
-  vec3 material_color = vec3(0.9);
+  vec3 material_color = vec3(153, 0, 0) / 255.0;
   float ambient_coefficient = 0.1;
   float specular_exponent = 70.0;
 

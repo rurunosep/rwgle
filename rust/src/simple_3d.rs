@@ -115,9 +115,9 @@ impl Simple3D {
     );
 
     // Lights
-    self.make_light(&gl, 0, &[-500., 0., -900.], &[1., 0., 0.], 0.001);
-    self.make_light(&gl, 1, &[0., 500., -900.], &[0., 1., 0.], 0.001);
-    self.make_light(&gl, 2, &[500., 0., -900.], &[0., 0., 1.], 0.001);
+    self.make_light(&gl, 0, &[-500., 0., -900.], &[1., 1., 1.], 0.001);
+    self.make_light(&gl, 1, &[0., 500., -900.], &[1., 1., 1.], 0.001);
+    self.make_light(&gl, 2, &[500., 0., -900.], &[1., 1., 1.], 0.001);
     gl.uniform1i(
       Some(&self.uniform_locations.get("u_num_lights").unwrap()),
       3,
