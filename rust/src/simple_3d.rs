@@ -3,10 +3,7 @@ use nalgebra_glm as na;
 use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 use web_sys::WebGlRenderingContext as GL;
-use web_sys::{
-  HtmlCanvasElement, HtmlImageElement, WebGlBuffer, WebGlProgram, WebGlTexture,
-  WebGlUniformLocation,
-};
+use web_sys::{HtmlCanvasElement, WebGlBuffer, WebGlProgram, WebGlTexture, WebGlUniformLocation};
 
 pub struct Simple3D {
   program: WebGlProgram,
@@ -14,7 +11,7 @@ pub struct Simple3D {
   num_indices: i32,
   attributes: HashMap<String, Attribute>,
   uniform_locations: HashMap<String, WebGlUniformLocation>,
-  texture: Texture,
+  texture: WebGlTexture,
 }
 
 impl Simple3D {
@@ -33,7 +30,7 @@ impl Simple3D {
     buffer_attribute_data(&gl, &attributes, "a_texcoords", &cube_texcoords());
     let (index_buffer, num_indices) = buffer_index_data(&gl, &cube_indices());
 
-    let texture = Texture::new(&gl, "redstone_block.png");
+    let texture = load_texture(&gl, "redstone_block.png");
 
     Ok(Simple3D {
       program,
@@ -52,8 +49,8 @@ impl Simple3D {
 
     gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
 
-    self.texture.update(&gl); // check if the image is loaded and fill the texture
-    self.texture.bind(&gl, 0);
+    gl.active_texture(GL::TEXTURE0);
+    gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
 
     self.load_uniforms(gl);
 
@@ -166,65 +163,6 @@ impl Simple3D {
       ),
       attentuation,
     );
-  }
-}
-
-// TODO: move this out somewhere
-struct Texture {
-  texture: WebGlTexture,
-  image: HtmlImageElement,
-  loaded: bool,
-}
-
-impl Texture {
-  pub fn new(gl: &GL, source: &str) -> Texture {
-    let texture = gl.create_texture().unwrap();
-    gl.active_texture(GL::TEXTURE0);
-    gl.bind_texture(GL::TEXTURE_2D, Some(&texture));
-    gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-      GL::TEXTURE_2D,
-      0,
-      GL::RGBA as i32,
-      1,
-      1,
-      0,
-      GL::RGBA,
-      GL::UNSIGNED_BYTE,
-      Some(&[0, 0, 255, 255]),
-    )
-    .unwrap();
-    let image = HtmlImageElement::new().unwrap();
-    image.set_src(source);
-    let loaded = false;
-
-    Texture {
-      texture,
-      image,
-      loaded,
-    }
-  }
-
-  pub fn update(&mut self, gl: &GL) {
-    if !self.loaded && self.image.complete() {
-      self.loaded = true;
-      gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
-      gl.tex_image_2d_with_u32_and_u32_and_image(
-        GL::TEXTURE_2D,
-        0,
-        GL::RGBA as i32,
-        GL::RGBA,
-        GL::UNSIGNED_BYTE,
-        &self.image,
-      )
-      .unwrap();
-      gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MAG_FILTER, GL::NEAREST as i32);
-      gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MIN_FILTER, GL::NEAREST as i32);
-    }
-  }
-
-  pub fn bind(&self, gl: &GL, unit: u32) {
-    gl.active_texture(GL::TEXTURE0 + unit);
-    gl.bind_texture(GL::TEXTURE_2D, Some(&self.texture));
   }
 }
 

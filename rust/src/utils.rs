@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use wasm_bindgen::prelude::*;
 use web_sys::WebGlRenderingContext as GL;
-use web_sys::{WebGlBuffer, WebGlProgram, WebGlShader, WebGlUniformLocation};
+use web_sys::{WebGlBuffer, WebGlProgram, WebGlShader, WebGlTexture, WebGlUniformLocation};
 
 pub struct Attribute {
   pub index: u32,
@@ -123,4 +124,47 @@ pub fn set_attrib_pointers(gl: &GL, attributes: &HashMap<String, Attribute>) {
     gl.vertex_attrib_pointer_with_i32(a.index, a.size, a.type_, false, 0, 0);
     gl.enable_vertex_attrib_array(a.index);
   }
+}
+
+// Return a new texture filled with placeholder data and then call a
+// JS func that will fetch the source image and fill the texture
+// with new data once it's ready
+//
+// I *think* this is safe. JS is single-threaded. The JS callback that
+// fires in response to the image being ready should be synchronous with
+// the render callback passed to requestAnimationFrame, so all updates
+// to GL state by the callback should happen in between renders.
+pub fn load_texture(gl: &GL, source_url: &str) -> WebGlTexture {
+  let texture = gl.create_texture().unwrap();
+
+  // Fill texture with placeholder data
+  gl.active_texture(GL::TEXTURE0);
+  gl.bind_texture(GL::TEXTURE_2D, Some(&texture));
+  gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+    GL::TEXTURE_2D,
+    0,
+    GL::RGBA as i32,
+    2,
+    2,
+    0,
+    GL::RGBA,
+    GL::UNSIGNED_BYTE,
+    Some(&[
+      255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
+    ]),
+  )
+  .unwrap();
+  gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MAG_FILTER, GL::NEAREST as i32);
+  gl.tex_parameteri(GL::TEXTURE_2D, GL::TEXTURE_MIN_FILTER, GL::NEAREST as i32);
+
+  // Asynchronously fill texture with image data with call to JS
+  load_texture_image(&gl, &texture, &source_url);
+
+  texture
+}
+
+#[wasm_bindgen(raw_module = "../js/index.js")]
+extern "C" {
+  #[wasm_bindgen(js_name = loadTextureImage)]
+  fn load_texture_image(gl: &GL, texture: &WebGlTexture, source_url: &str);
 }
