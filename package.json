@@ -7,8 +7,7 @@
     "build": "rimraf dist wasm && webpack",
     "start": "node server.js",
     "dev": "webpack serve --mode development",
-    "prod": "webpack serve --mode production",
-    "test": "cargo test && wasm-pack test --headless"
+    "prod": "webpack serve --mode production"
   },
   "dependencies": {
     "express": "^4.17.1"

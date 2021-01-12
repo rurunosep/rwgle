@@ -15,6 +15,7 @@ import('../wasm/').then(({ RustWebGLEngine }) => {
   }
 })
 
+// TODO: move this out
 export const loadTextureImage = (gl, texture, sourceUrl) => {
   let image = new Image()
   image.src = sourceUrl

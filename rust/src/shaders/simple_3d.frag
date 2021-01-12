@@ -6,29 +6,47 @@ struct Light {
   vec3 position;
   vec3 color;
   float attentuation_coefficient;
-  bool directional;
+  bool directional; // Maybe store this in the W?
 };
 
-varying vec3 v_normal;
-varying vec3 v_world_position;
+varying vec3 v_normal;  // Surface normal in world space
+varying vec3 v_position;  // In world space
 varying vec2 v_texcoords;
+varying vec3 v_tangent;
+varying vec3 v_bitangent;
 
+uniform mat4 u_world;
+uniform mat4 u_view;
 uniform vec3 u_camera_position;
 uniform Light u_lights[MAX_LIGHTS];
 uniform lowp int u_num_lights;
-uniform sampler2D u_texture;
+
+// TODO: rename
+uniform sampler2D u_diffuse_texture;
+uniform sampler2D u_specular_texture;
+uniform sampler2D u_normal_map;
 
 // TODO: Organize all of this
 
 void main() {
-  vec3 normal = normalize(v_normal);
-  vec3 surface_to_camera_dir = normalize(u_camera_position - v_world_position);
-
-  // TODO: Make these uniforms
-  // vec3 material_color = vec3(153, 0, 0) / 255.0;
-  vec3 material_specular_color = vec3(1);
   float ambient_coefficient = 0.1;
-  float specular_exponent = 70.0;
+  float specular_exponent = 70.0; // Can I get this from the specular map?
+
+  vec4 material_diffuse_color = texture2D(u_diffuse_texture, v_texcoords);
+  float material_smoothness = texture2D(u_specular_texture, v_texcoords).r;
+  vec3 normal = normalize(texture2D(u_normal_map, v_texcoords).rgb * 2.0 - 1.0);
+
+  vec3 surface_normal = normalize(v_normal);
+  vec3 tangent = normalize((u_view * u_world * vec4(v_tangent, 0.0)).xyz);
+  vec3 bitangent = normalize((u_view * u_world * vec4(v_bitangent, 0.0)).xyz);
+  mat3 to_tangent_space = mat3(
+    tangent.x, bitangent.x, surface_normal.x,
+    tangent.y, bitangent.y, surface_normal.y,
+    tangent.z, bitangent.z, surface_normal.z
+  );
+
+  vec3 surface_to_camera = to_tangent_space * (u_camera_position - v_position);
+  vec3 surface_to_camera_dir = normalize(surface_to_camera);
 
   vec3 diffuse_sum = vec3(0);
   vec3 specular_sum = vec3(0);
@@ -36,14 +54,17 @@ void main() {
   for (int i = 0; i < MAX_LIGHTS; i++) {
     if (i == u_num_lights) break;
 
-    vec3 surface_to_light = u_lights[i].position - v_world_position;
+    vec3 surface_to_light = to_tangent_space * (u_lights[i].position - v_position);
+
     float attentuation = 1.0 / (1.0 +
       pow(u_lights[i].attentuation_coefficient * length(surface_to_light), 2.0));
+
     // If the light is directional, it's "position" is its inverse direction
     vec3 surface_to_light_dir = normalize(
         u_lights[i].directional ? u_lights[i].position : surface_to_light
       );
 
+    // Diffuse
     float diffuse_coefficient = attentuation *
       max(0.0, dot(normal, surface_to_light_dir));
     diffuse_sum += diffuse_coefficient * u_lights[i].color;
@@ -55,10 +76,10 @@ void main() {
     specular_sum += specular_coefficient * u_lights[i].color;
   }
 
-  vec3 ambient_component = texture2D(u_texture, v_texcoords).rgb * ambient_coefficient;
-  vec3 diffuse_component = texture2D(u_texture, v_texcoords).rgb *
+  vec3 ambient_component = material_diffuse_color.rgb * ambient_coefficient;
+  vec3 diffuse_component = material_diffuse_color.rgb *
     (diffuse_sum / max(diffuse_sum.r, max(diffuse_sum.g, max(diffuse_sum.b, 1.0))));
-  vec3 specular_component = material_specular_color *
+  vec3 specular_component = material_smoothness *
     (specular_sum / max(specular_sum.r, max(specular_sum.g, max(specular_sum.b, 1.0))));
 
   gl_FragColor = vec4((ambient_component + diffuse_component + specular_component), 1);
