@@ -23,14 +23,14 @@ pub struct RustWebGLEngine {
 #[wasm_bindgen]
 impl RustWebGLEngine {
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas: JsValue) -> Result<RustWebGLEngine, JsValue> {
+    pub async fn new(canvas: JsValue) -> Result<RustWebGLEngine, JsValue> {
         #[cfg(debug_assertions)]
         console_error_panic_hook::set_once();
 
         let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
         let gl = canvas.get_context("webgl")?.unwrap().dyn_into::<GL>()?;
 
-        let simple_3d = Simple3D::new(&gl)?;
+        let simple_3d = Simple3D::new(&gl).await?;
 
         Ok(RustWebGLEngine { gl, simple_3d })
     }

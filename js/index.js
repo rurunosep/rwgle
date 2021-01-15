@@ -1,8 +1,8 @@
-import('../wasm/').then(({ RustWebGLEngine }) => {
+import('../wasm/').then(async ({ RustWebGLEngine }) => {
   const canvas = document.getElementById('canvas')
 
   try {
-    let engine = new RustWebGLEngine(canvas)
+    let engine = await new RustWebGLEngine(canvas)
 
     const render = () => {
       engine.render()

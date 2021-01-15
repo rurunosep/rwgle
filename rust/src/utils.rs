@@ -1,13 +1,14 @@
+use nalgebra_glm as na;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlShader, WebGlTexture, WebGlUniformLocation};
 
 pub struct Attribute {
+  pub name: String,
   pub index: u32,
   pub size: i32,
   pub type_: u32,
-  pub buffer: WebGlBuffer,
 }
 
 pub fn link_program(
@@ -67,10 +68,10 @@ pub fn get_attributes(gl: &GL, program: &WebGlProgram) -> HashMap<String, Attrib
     map.insert(
       info.name(),
       Attribute {
+        name: info.name(),
         index,
         size,
         type_,
-        buffer: gl.create_buffer().unwrap(),
       },
     );
   }
@@ -94,20 +95,6 @@ pub fn get_uniform_locations(
   map
 }
 
-pub fn buffer_attribute_data(
-  gl: &GL,
-  attributes: &HashMap<String, Attribute>,
-  name: &str,
-  data: &[f32],
-) {
-  let buffer = &attributes.get(name).unwrap().buffer;
-  gl.bind_buffer(GL::ARRAY_BUFFER, Some(&buffer));
-  unsafe {
-    let array = js_sys::Float32Array::view(&data);
-    gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &array, GL::STATIC_DRAW);
-  }
-}
-
 pub fn buffer_index_data(gl: &GL, data: &[u16]) -> (WebGlBuffer, i32) {
   let buffer = gl.create_buffer().unwrap();
   gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&buffer));
@@ -118,20 +105,84 @@ pub fn buffer_index_data(gl: &GL, data: &[u16]) -> (WebGlBuffer, i32) {
   (buffer, data.len() as i32)
 }
 
-pub fn set_attrib_pointers(gl: &GL, attributes: &HashMap<String, Attribute>) {
-  for a in attributes.values() {
-    gl.bind_buffer(GL::ARRAY_BUFFER, Some(&a.buffer));
-    gl.vertex_attrib_pointer_with_i32(a.index, a.size, a.type_, false, 0, 0);
-    gl.enable_vertex_attrib_array(a.index);
+// TODO: nicer
+pub fn calc_tangents_bitangents(
+  indices: &[u16],
+  positions: &[f32],
+  texcoords: &[f32],
+) -> (Vec<f32>, Vec<f32>) {
+  let mut tangents: Vec<f32> = Vec::with_capacity(positions.len() as usize);
+  tangents.resize(positions.len(), 0.);
+  let mut bitangents: Vec<f32> = Vec::with_capacity(positions.len() as usize);
+  bitangents.resize(positions.len(), 0.);
+
+  for i in (0..indices.len()).step_by(3) {
+    let v0 = na::vec3(
+      positions[indices[i + 0] as usize * 3 + 0],
+      positions[indices[i + 0] as usize * 3 + 1],
+      positions[indices[i + 0] as usize * 3 + 2],
+    );
+    let v1 = na::vec3(
+      positions[indices[i + 1] as usize * 3 + 0],
+      positions[indices[i + 1] as usize * 3 + 1],
+      positions[indices[i + 1] as usize * 3 + 2],
+    );
+    let v2 = na::vec3(
+      positions[indices[i + 2] as usize * 3 + 0],
+      positions[indices[i + 2] as usize * 3 + 1],
+      positions[indices[i + 2] as usize * 3 + 2],
+    );
+
+    let uv0 = na::vec2(
+      texcoords[indices[i + 0] as usize * 2 + 0],
+      texcoords[indices[i + 0] as usize * 2 + 1],
+    );
+    let uv1 = na::vec2(
+      texcoords[indices[i + 1] as usize * 2 + 0],
+      texcoords[indices[i + 1] as usize * 2 + 1],
+    );
+    let uv2 = na::vec2(
+      texcoords[indices[i + 2] as usize * 2 + 0],
+      texcoords[indices[i + 2] as usize * 2 + 1],
+    );
+
+    let delta_pos_1 = v1 - v0;
+    let delta_pos_2 = v2 - v0;
+
+    let delta_uv_1 = uv1 - uv0;
+    let delta_uv_2 = uv2 - uv0;
+
+    let r = 1.0 / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
+    let tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
+    let bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
+
+    tangents[indices[i + 0] as usize * 3 + 0] = tangent.x;
+    tangents[indices[i + 0] as usize * 3 + 1] = tangent.y;
+    tangents[indices[i + 0] as usize * 3 + 2] = tangent.z;
+    tangents[indices[i + 1] as usize * 3 + 0] = tangent.x;
+    tangents[indices[i + 1] as usize * 3 + 1] = tangent.y;
+    tangents[indices[i + 1] as usize * 3 + 2] = tangent.z;
+    tangents[indices[i + 2] as usize * 3 + 0] = tangent.x;
+    tangents[indices[i + 2] as usize * 3 + 1] = tangent.y;
+    tangents[indices[i + 2] as usize * 3 + 2] = tangent.z;
+
+    bitangents[indices[i + 0] as usize * 3 + 0] = bitangent.x;
+    bitangents[indices[i + 0] as usize * 3 + 1] = bitangent.y;
+    bitangents[indices[i + 0] as usize * 3 + 2] = bitangent.z;
+    bitangents[indices[i + 1] as usize * 3 + 0] = bitangent.x;
+    bitangents[indices[i + 1] as usize * 3 + 1] = bitangent.y;
+    bitangents[indices[i + 1] as usize * 3 + 2] = bitangent.z;
+    bitangents[indices[i + 2] as usize * 3 + 0] = bitangent.x;
+    bitangents[indices[i + 2] as usize * 3 + 1] = bitangent.y;
+    bitangents[indices[i + 2] as usize * 3 + 2] = bitangent.z;
   }
+
+  (tangents, bitangents)
 }
 
 // Return a new texture filled with placeholder data and then call a
 // JS func that will fetch the source image and fill the texture
 // with new data once it's ready
-//
-// TODO: different funcs for regular texture, normal map, and specular? they
-// need different default data at least
 pub fn load_texture(gl: &GL, source_url: &str) -> WebGlTexture {
   let texture = gl.create_texture().unwrap();
 

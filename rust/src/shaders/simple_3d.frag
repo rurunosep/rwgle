@@ -22,8 +22,8 @@ uniform Light u_lights[MAX_LIGHTS];
 uniform lowp int u_num_lights;
 
 // TODO: rename
-uniform sampler2D u_diffuse_texture;
-uniform sampler2D u_specular_texture;
+uniform sampler2D u_color_map;
+uniform sampler2D u_specular_map;
 uniform sampler2D u_normal_map;
 
 // TODO: Organize all of this
@@ -32,8 +32,8 @@ void main() {
   float ambient_coefficient = 0.1;
   float specular_exponent = 70.0; // Can I get this from the specular map?
 
-  vec4 material_diffuse_color = texture2D(u_diffuse_texture, v_texcoords);
-  float material_smoothness = texture2D(u_specular_texture, v_texcoords).r;
+  vec4 material_color = texture2D(u_color_map, v_texcoords);
+  float smoothness = texture2D(u_specular_map, v_texcoords).r;
   vec3 normal = normalize(texture2D(u_normal_map, v_texcoords).rgb * 2.0 - 1.0);
 
   vec3 surface_normal = normalize(v_normal);
@@ -76,10 +76,10 @@ void main() {
     specular_sum += specular_coefficient * u_lights[i].color;
   }
 
-  vec3 ambient_component = material_diffuse_color.rgb * ambient_coefficient;
-  vec3 diffuse_component = material_diffuse_color.rgb *
+  vec3 ambient_component = material_color.rgb * ambient_coefficient;
+  vec3 diffuse_component = material_color.rgb *
     (diffuse_sum / max(diffuse_sum.r, max(diffuse_sum.g, max(diffuse_sum.b, 1.0))));
-  vec3 specular_component = material_smoothness *
+  vec3 specular_component = smoothness *
     (specular_sum / max(specular_sum.r, max(specular_sum.g, max(specular_sum.b, 1.0))));
 
   gl_FragColor = vec4((ambient_component + diffuse_component + specular_component), 1);
