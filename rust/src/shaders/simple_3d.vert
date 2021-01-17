@@ -1,5 +1,3 @@
-// I'm doing this just so that precision of uniforms matches between
-// vert and frag shaders without making them explicit
 precision mediump float;
 
 attribute vec3 a_position;

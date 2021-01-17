@@ -31,5 +31,6 @@ features = [
   "WebGlTexture",
   "OesVertexArrayObject",
   "WebGlVertexArrayObject",
+  "Response",
 ]
 version = "^0.3.46"

@@ -3,21 +3,21 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 
-mod simple_3d;
+mod model;
+mod object;
+mod renderer;
 mod utils;
-use simple_3d::*;
+use renderer::*;
 
 // web_sys::console::log_1(&format!("{}").into());
 
-// Smaller but less efficient memory allocator.
-// Remove if performance becomes a bigger concern.
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub struct RustWebGLEngine {
     gl: GL,
-    simple_3d: Simple3D,
+    renderer: Renderer,
 }
 
 #[wasm_bindgen]
@@ -30,9 +30,9 @@ impl RustWebGLEngine {
         let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
         let gl = canvas.get_context("webgl")?.unwrap().dyn_into::<GL>()?;
 
-        let simple_3d = Simple3D::new(&gl).await?;
+        let renderer = Renderer::new(&gl).await?;
 
-        Ok(RustWebGLEngine { gl, simple_3d })
+        Ok(RustWebGLEngine { gl, renderer })
     }
 
     pub fn render(&mut self) {
@@ -41,6 +41,6 @@ impl RustWebGLEngine {
         self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
         self.gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
 
-        self.simple_3d.render(&self.gl);
+        self.renderer.render(&self.gl);
     }
 }
