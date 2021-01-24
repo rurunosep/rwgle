@@ -11,12 +11,19 @@
       body {
         height: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
       }
     </style>
   </head>
   <body>
-    <canvas id="canvas" width="500" height="500"></canvas>
+    <div>
+      <canvas id="canvas" width="500" height="500"></canvas>
+    </div>
+    <div>
+      <button id="left-button">Left</button>
+      <button id="right-button">Right</button>
+    </div>
   </body>
 </html>

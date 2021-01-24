@@ -3,6 +3,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 
+mod mesh;
 mod model;
 mod object;
 mod renderer;
@@ -35,6 +36,7 @@ impl RustWebGLEngine {
         Ok(RustWebGLEngine { gl, renderer })
     }
 
+    // If I make this async, it MUST take "self" NOT "&self"
     pub fn render(&mut self) {
         self.gl.enable(GL::CULL_FACE);
         self.gl.enable(GL::DEPTH_TEST);
@@ -42,5 +44,15 @@ impl RustWebGLEngine {
         self.gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
 
         self.renderer.render(&self.gl);
+    }
+
+    #[wasm_bindgen(js_name = rotateCameraLeft)]
+    pub fn rotate_camera_left(&mut self) {
+        self.renderer.rotate_camera_left();
+    }
+
+    #[wasm_bindgen(js_name = rotateCameraRight)]
+    pub fn rotate_camera_right(&mut self) {
+        self.renderer.rotate_camera_right();
     }
 }

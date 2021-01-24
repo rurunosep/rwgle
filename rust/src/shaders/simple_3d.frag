@@ -16,12 +16,10 @@ varying vec3 v_tangent;
 varying vec3 v_bitangent;
 
 uniform mat4 u_world;
-uniform mat4 u_view;
 uniform vec3 u_camera_position;
 uniform Light u_lights[MAX_LIGHTS];
 uniform lowp int u_num_lights;
 
-// TODO: rename
 uniform sampler2D u_color_map;
 uniform sampler2D u_specular_map;
 uniform sampler2D u_normal_map;
@@ -37,8 +35,8 @@ void main() {
   vec3 normal = normalize(texture2D(u_normal_map, v_texcoords).rgb * 2.0 - 1.0);
 
   vec3 surface_normal = normalize(v_normal);
-  vec3 tangent = normalize((u_view * u_world * vec4(v_tangent, 0.0)).xyz);
-  vec3 bitangent = normalize((u_view * u_world * vec4(v_bitangent, 0.0)).xyz);
+  vec3 tangent = normalize((u_world * vec4(v_tangent, 0.0)).xyz);
+  vec3 bitangent = normalize((u_world * vec4(v_bitangent, 0.0)).xyz);
   mat3 to_tangent_space = mat3(
     tangent.x, bitangent.x, surface_normal.x,
     tangent.y, bitangent.y, surface_normal.y,

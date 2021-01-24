@@ -22,6 +22,8 @@ pub async fn fetch_resource_as_array_buffer(url: &str) -> js_sys::ArrayBuffer {
 // Return a new texture filled with placeholder data and then call a
 // JS func that will fetch the source image and fill the texture
 // with new data once it's ready
+//
+// TODO: Do the async work here in Rust, without a call to JS
 pub fn load_texture(gl: &GL, source_url: &str) -> WebGlTexture {
   let texture = gl.create_texture().unwrap();
 
