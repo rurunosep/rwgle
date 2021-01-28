@@ -214,7 +214,7 @@ impl Renderer {
       .dyn_into::<HtmlCanvasElement>()
       .unwrap();
     let fov = 60. * (std::f32::consts::PI / 180.);
-    let aspect = (canvas.width() / canvas.height()) as f32;
+    let aspect = canvas.width() as f32 / canvas.height() as f32;
     let projection = na::perspective(aspect, fov, 1., 2000.);
     gl.uniform_matrix4fv_with_f32_array(
       Some(&self.uniform_locations.get("u_projection").unwrap()),

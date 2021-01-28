@@ -38,9 +38,23 @@ impl RustWebGLEngine {
 
     // If I make this async, it MUST take "self" NOT "&self"
     pub fn render(&mut self) {
+        let canvas = self
+            .gl
+            .canvas()
+            .unwrap()
+            .dyn_into::<HtmlCanvasElement>()
+            .unwrap();
+        canvas.set_width(canvas.client_width() as u32);
+        canvas.set_height(canvas.client_height() as u32);
+        self.gl
+            .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
+
         self.gl.enable(GL::CULL_FACE);
         self.gl.enable(GL::DEPTH_TEST);
-        self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
+        // self.gl.clear_color(0., 0., 0., 1.);
+        // self.gl.clear_color(0.65, 0.8, 1., 1.);
+        self.gl
+            .clear_color(204. / 255., 255. / 255., 153. / 255., 1.);
         self.gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
 
         self.renderer.render(&self.gl);

@@ -4,14 +4,10 @@ import('../wasm/').then(async ({ RustWebGLEngine }) => {
   const rightButton = document.getElementById('right-button')
 
   try {
-    let engine = await new RustWebGLEngine(canvas)
+    const engine = await new RustWebGLEngine(canvas)
 
-    leftButton.addEventListener('click', () => {
-      engine.rotateCameraLeft()
-    })
-    rightButton.addEventListener('click', () => {
-      engine.rotateCameraRight()
-    })
+    leftButton.addEventListener('click', () => engine.rotateCameraLeft())
+    rightButton.addEventListener('click', () => engine.rotateCameraRight())
 
     const render = () => {
       engine.render()
