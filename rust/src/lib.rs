@@ -51,10 +51,7 @@ impl RustWebGLEngine {
 
         self.gl.enable(GL::CULL_FACE);
         self.gl.enable(GL::DEPTH_TEST);
-        // self.gl.clear_color(0., 0., 0., 1.);
-        // self.gl.clear_color(0.65, 0.8, 1., 1.);
-        self.gl
-            .clear_color(204. / 255., 255. / 255., 153. / 255., 1.);
+        self.gl.clear_color(0.8, 0.8, 0.8, 1.);
         self.gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
 
         self.renderer.render(&self.gl);

@@ -12,16 +12,11 @@ use web_sys::{HtmlCanvasElement, WebGlProgram, WebGlShader, WebGlUniformLocation
 pub struct Renderer {
   program: WebGlProgram,
   uniform_locations: HashMap<String, WebGlUniformLocation>,
-  redstone: Object,
-  nether_gold: Object,
+  objects: Vec<Object>,
   //
   camera_direction_index: usize,
   camera_rotation: na::Quat,
   camera_transition: Option<CameraRotationTransition>,
-  //
-  redstone_l: Object,
-  redstone_r: Object,
-  redstone_b: Object,
 }
 
 impl Renderer {
@@ -35,50 +30,20 @@ impl Renderer {
     let uniform_locations = get_uniform_locations(&gl, &program);
 
     let cube_mesh = Rc::new(Mesh::new(&gl, &get_attributes(&gl, &program), "cube.gltf").await);
-
-    let redstone_model = Rc::new(Model {
-      mesh: Rc::clone(&cube_mesh),
-      color_map: load_texture(&gl, "redstone_block.png"),
-      specular_map: load_texture(&gl, "redstone_block_s.png"),
-      normal_map: load_texture(&gl, "redstone_block_n.png"),
-    });
-    let nether_gold_model = Rc::new(Model {
-      mesh: Rc::clone(&cube_mesh),
-      color_map: load_texture(&gl, "nether_gold_ore.png"),
-      specular_map: load_texture(&gl, "nether_gold_ore_s.png"),
-      normal_map: load_texture(&gl, "nether_gold_ore_n.png"),
-    });
-
-    let redstone = Object {
-      model: Rc::clone(&redstone_model),
-      scale: na::scaling(&na::vec3(100., 100., 100.)),
-      rotation: na::identity(),
-      translation: na::translation(&na::vec3(200., 0., -700.)),
-    };
-
-    let nether_gold = Object {
-      model: Rc::clone(&nether_gold_model),
-      scale: na::scaling(&na::vec3(100., 100., 100.)),
-      rotation: na::identity(),
-      translation: na::translation(&na::vec3(-200., 0., -700.)),
-    };
-
-    // --------------
-    let mut redstone_l = redstone.clone();
-    redstone_l.translation = na::translation(&na::vec3(-700., 0., 0.));
-
-    let mut redstone_r = redstone.clone();
-    redstone_r.translation = na::translation(&na::vec3(700., 0., 0.));
-
-    let mut redstone_b = redstone.clone();
-    redstone_b.translation = na::translation(&na::vec3(0., 0., 700.));
-    // --------------
+    let mut objects: Vec<Object> = Vec::with_capacity(8);
+    objects.push(create_block(&gl, &cube_mesh, "obsidian", 0));
+    objects.push(create_block(&gl, &cube_mesh, "lime_glazed_terracotta", 1));
+    objects.push(create_block(&gl, &cube_mesh, "redstone_block", 2));
+    objects.push(create_block(&gl, &cube_mesh, "yellow_glazed_terracotta", 3));
+    objects.push(create_block(&gl, &cube_mesh, "blackstone", 4));
+    objects.push(create_block(&gl, &cube_mesh, "white_glazed_terracotta", 5));
+    objects.push(create_block(&gl, &cube_mesh, "nether_gold_ore", 6));
+    objects.push(create_block(&gl, &cube_mesh, "red_glazed_terracotta", 7));
 
     Ok(Renderer {
       program,
       uniform_locations,
-      redstone,
-      nether_gold,
+      objects,
       //
       camera_direction_index: 0,
       camera_rotation: na::quat_inverse(&na::quat_look_at(
@@ -86,10 +51,6 @@ impl Renderer {
         &na::vec3(0., 1., 0.),
       )),
       camera_transition: None,
-      //
-      redstone_l,
-      redstone_r,
-      redstone_b,
     })
   }
 
@@ -107,60 +68,30 @@ impl Renderer {
     gl.use_program(Some(&self.program));
     self.load_uniforms(gl);
 
-    // Redstone
-    self.redstone.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
-      * na::rotation(
-        std::f32::consts::PI * 2. * (time % 10000. / 10000.),
-        &na::vec3(0., 1., 0.),
-      )
-      * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
+    for object in self.objects.iter_mut() {
+      object.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
+        * na::rotation(
+          std::f32::consts::PI * 2. * (time % 10000. / 10000.),
+          &na::vec3(0., 1., 0.),
+        )
+        * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
 
-    self.redstone.render(&gl, &self.uniform_locations);
-
-    // Nether gold
-    self.nether_gold.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
-      * na::rotation(
-        std::f32::consts::PI * 2. * -(time % 10000. / 10000.),
-        &na::vec3(0., 1., 0.),
-      )
-      * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
-
-    self.nether_gold.render(&gl, &self.uniform_locations);
-
-    // Other redstones
-    self.redstone_l.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
-      * na::rotation(
-        std::f32::consts::PI * 2. * (time % 10000. / 10000.),
-        &na::vec3(0., 1., 0.),
-      )
-      * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
-    self.redstone_l.render(&gl, &self.uniform_locations);
-
-    self.redstone_r.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
-      * na::rotation(
-        std::f32::consts::PI * 2. * (time % 10000. / 10000.),
-        &na::vec3(0., 1., 0.),
-      )
-      * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
-    self.redstone_r.render(&gl, &self.uniform_locations);
-
-    self.redstone_b.rotation = na::rotation(0., &na::vec3(1., 0., 0.))
-      * na::rotation(
-        std::f32::consts::PI * 2. * (time % 10000. / 10000.),
-        &na::vec3(0., 1., 0.),
-      )
-      * na::rotation(std::f32::consts::PI * 0., &na::vec3(0., 0., 1.));
-    self.redstone_b.render(&gl, &self.uniform_locations);
+      object.render(&gl, &self.uniform_locations);
+    }
   }
 
   pub fn rotate_camera_left(&mut self) {
-    self.camera_direction_index = (self.camera_direction_index + 3) % 4;
+    self.camera_direction_index = (self.camera_direction_index + 7) % 8;
     let new_camera_rotation = na::quat_inverse(&na::quat_look_at(
       &match self.camera_direction_index {
         0 => na::vec3(0., 0., -1.),
-        1 => na::vec3(1., 0., 0.),
-        2 => na::vec3(0., 0., 1.),
-        _ => na::vec3(-1., 0., 0.),
+        1 => na::vec3(0.71, 0., -0.71),
+        2 => na::vec3(1., 0., 0.),
+        3 => na::vec3(0.71, 0., 0.71),
+        4 => na::vec3(0., 0., 1.),
+        5 => na::vec3(-0.71, 0., 0.71),
+        6 => na::vec3(-1., 0., 0.),
+        _ => na::vec3(-0.71, 0., -0.71),
       },
       &na::vec3(0., 1., 0.),
     ));
@@ -175,13 +106,17 @@ impl Renderer {
   }
 
   pub fn rotate_camera_right(&mut self) {
-    self.camera_direction_index = (self.camera_direction_index + 1) % 4;
+    self.camera_direction_index = (self.camera_direction_index + 1) % 8;
     let new_camera_rotation = na::quat_inverse(&na::quat_look_at(
       &match self.camera_direction_index {
         0 => na::vec3(0., 0., -1.),
-        1 => na::vec3(1., 0., 0.),
-        2 => na::vec3(0., 0., 1.),
-        _ => na::vec3(-1., 0., 0.),
+        1 => na::vec3(0.71, 0., -0.71),
+        2 => na::vec3(1., 0., 0.),
+        3 => na::vec3(0.71, 0., 0.71),
+        4 => na::vec3(0., 0., 1.),
+        5 => na::vec3(-0.71, 0., 0.71),
+        6 => na::vec3(-1., 0., 0.),
+        _ => na::vec3(-0.71, 0., -0.71),
       },
       &na::vec3(0., 1., 0.),
     ));
@@ -230,8 +165,6 @@ impl Renderer {
 
     // Lights
     self.make_light(&gl, 0, &[0., 0., 0.], &[1., 1., 1.], 0.001);
-    //self.make_light(&gl, 1, &[0., 0., -2000.], &[1., 1., 1.], 0.001);
-    //self.make_light(&gl, 2, &[800., 0., -800.], &[1., 1., 1.], 0.001);
     gl.uniform1i(
       Some(&self.uniform_locations.get("u_num_lights").unwrap()),
       1,
@@ -407,4 +340,21 @@ fn get_uniform_locations(gl: &GL, program: &WebGlProgram) -> HashMap<String, Web
     map.insert(name, location);
   }
   map
+}
+
+fn create_block(gl: &GL, mesh: &Rc<Mesh>, texture_name: &str, pos: i32) -> Object {
+  let angle = std::f32::consts::PI * 2. / 8. * (pos as f32);
+  let x = 600. * angle.cos();
+  let z = -(600. * angle.sin());
+  Object {
+    model: Rc::new(Model {
+      mesh: Rc::clone(&mesh),
+      color_map: load_texture(&gl, &format!("textures/{}.png", texture_name)),
+      specular_map: load_texture(&gl, &format!("textures/{}_s.png", texture_name)),
+      normal_map: load_texture(&gl, &format!("textures/{}_n.png", texture_name)),
+    }),
+    scale: na::scaling(&na::vec3(100., 100., 100.)),
+    rotation: na::identity(),
+    translation: na::translation(&na::vec3(x, 0., z)),
+  }
 }
