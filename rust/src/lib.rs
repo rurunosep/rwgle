@@ -1,14 +1,14 @@
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::HtmlCanvasElement;
-use web_sys::WebGlRenderingContext as GL;
-
 mod mesh;
 mod model;
 mod object;
 mod renderer;
 mod utils;
-use renderer::*;
+
+use renderer::Renderer;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlCanvasElement;
+use web_sys::WebGlRenderingContext as GL;
 
 // web_sys::console::log_1(&format!("{}").into());
 

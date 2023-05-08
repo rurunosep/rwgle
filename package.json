@@ -1,8 +1,14 @@
 {
-  "name": "rust-webgl",
-  "version": "0.1.0",
+  "name": "rwgle",
   "author": "Kevin Hernandez-Rives <rurunosep@gmail.com>",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rurunosep/rwgle.git"
+  },
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "build": "rimraf dist wasm && webpack",
     "start": "node server.js",
